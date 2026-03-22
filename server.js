@@ -11,11 +11,6 @@ console.log('--- Server Starting ---');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('DATABASE_URL defined:', !!process.env.DATABASE_URL);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
 // PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -24,19 +19,10 @@ const pool = new Pool({
     : false
 });
 
-// Test database connection
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('❌ DATABASE CONNECTION ERROR:', err.message);
-  } else {
-    console.log('✅ Successfully connected to PostgreSQL');
-    release();
-  }
-});
-
 // Database initialization
 const initDB = async () => {
   try {
+    console.log('Attempting to initialize database...');
     await pool.query(`
       CREATE TABLE IF NOT EXISTS items (
         id SERIAL PRIMARY KEY,
@@ -44,17 +30,22 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('✅ Database table initialized');
+    console.log('✅ Database table "items" is ready');
   } catch (err) {
-    console.error('❌ Error initializing database table:', err.message);
+    console.error('❌ DATABASE INIT ERROR:', err.message);
   }
 };
 
 initDB();
 
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Health Check Route
 app.get('/health', (req, res) => {
-  res.send('Server is up and running');
+  res.json({ status: 'up', database_url: !!process.env.DATABASE_URL });
 });
 
 // API Routes
@@ -63,8 +54,8 @@ app.get('/api/items', async (req, res) => {
     const result = await pool.query('SELECT * FROM items ORDER BY created_at DESC');
     res.json(result.rows);
   } catch (err) {
-    console.error('API Error (GET /api/items):', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('GET /api/items error:', err.message);
+    res.status(500).json({ error: 'Database error: ' + err.message });
   }
 });
 
@@ -79,12 +70,12 @@ app.post('/api/items', async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('API Error (POST /api/items):', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('POST /api/items error:', err.message);
+    res.status(500).json({ error: 'Database error: ' + err.message });
   }
 });
 
-// Catch-all route to serve index.html for any other requests
+// Catch-all route to serve index.html
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
