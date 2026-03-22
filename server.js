@@ -82,8 +82,8 @@ app.post('/api/items', async (req, res) => {
   }
 });
 
-// Catch-all route to serve index.html
-app.get('*', (req, res) => {
+// Catch-all route to serve index.html for any other requests
+app.get('/:path*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
