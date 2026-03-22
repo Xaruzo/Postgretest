@@ -50,4 +50,5 @@ itemForm.addEventListener('submit', async (e) => {
 });
 
 // Initial fetch
+console.log('Script loaded and running');
 fetchItems();
