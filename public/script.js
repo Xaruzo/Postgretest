@@ -38,9 +38,12 @@ itemForm.addEventListener('submit', async (e) => {
       itemNameInput.value = '';
       fetchItems();
     } else {
-      console.error('Failed to add item');
+      const errorData = await response.json();
+      alert('Error adding item: ' + (errorData.error || 'Unknown error'));
+      console.error('Failed to add item:', errorData);
     }
   } catch (err) {
+    alert('Network error adding item. Check if server is running.');
     console.error('Error adding item:', err);
   }
 });
