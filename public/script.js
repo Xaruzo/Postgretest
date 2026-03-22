@@ -23,6 +23,7 @@ async function fetchItems() {
 itemForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = itemNameInput.value.trim();
+  console.log('Attempting to add item:', name);
   if (!name) return;
 
   try {
