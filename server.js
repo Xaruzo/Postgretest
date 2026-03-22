@@ -7,6 +7,10 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+console.log('--- Server Starting ---');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('DATABASE_URL defined:', !!process.env.DATABASE_URL);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -21,10 +25,11 @@ const pool = new Pool({
 // Test database connection
 pool.connect((err, client, release) => {
   if (err) {
-    return console.error('Error acquiring client', err.stack);
+    console.error('❌ DATABASE CONNECTION ERROR:', err.message);
+  } else {
+    console.log('✅ Successfully connected to PostgreSQL');
+    release();
   }
-  console.log('Successfully connected to PostgreSQL');
-  release();
 });
 
 // Database initialization
@@ -37,13 +42,18 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('Database initialized');
+    console.log('✅ Database table initialized');
   } catch (err) {
-    console.error('Error initializing database:', err);
+    console.error('❌ Error initializing database table:', err.message);
   }
 };
 
 initDB();
+
+// Health Check Route
+app.get('/health', (req, res) => {
+  res.send('Server is up and running');
+});
 
 // API Routes
 app.get('/api/items', async (req, res) => {
@@ -51,8 +61,8 @@ app.get('/api/items', async (req, res) => {
     const result = await pool.query('SELECT * FROM items ORDER BY created_at DESC');
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('API Error (GET /api/items):', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -67,16 +77,16 @@ app.post('/api/items', async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('API Error (POST /api/items):', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Catch-all route to serve index.html for any other requests
+// Catch-all route to serve index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
